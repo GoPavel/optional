@@ -6,7 +6,7 @@
 template <typename T>
 class optional_movable {
     bool is_exist;
-    char storage[sizeof(T)];
+    std::aligned_storage_t<sizeof(T), alignof(T)> storage;
 
 public:
     optional_movable(): is_exist(false) { }
@@ -64,18 +64,18 @@ public:
 private:
 
     T* get_ptr() {
-        return reinterpret_cast<T *>(storage);
+        return &reinterpret_cast<T&>(storage);
     }
 
     T const* get_ptr() const {
-        return reinterpret_cast<T const *>(storage);
+        return &reinterpret_cast<T const &>(storage);
     }
 };
 
 template <typename T>
 class optional_copyable {
     bool is_exist;
-    char storage[sizeof(T)];
+    std::aligned_storage_t<sizeof(T), alignof(T)> storage;
 
 public:
     optional_copyable(): is_exist(false) { }
@@ -148,11 +148,11 @@ public:
 private:
 
     T* get_ptr() {
-        return reinterpret_cast<T *>(storage);
+        return &reinterpret_cast<T&>(storage);
     }
 
     T const* get_ptr() const {
-        return reinterpret_cast<T const *>(storage);
+        return &reinterpret_cast<T const &>(storage);
     }
 };
 
