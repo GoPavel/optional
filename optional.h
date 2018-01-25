@@ -6,7 +6,6 @@ template <typename T>
 class optional;
 
 
-
 template <typename T>
 class optional{
     bool is_exist;
@@ -68,7 +67,7 @@ public:
     }
 
     bool is_empty() {
-        return is_exist;
+        return !is_exist;
     }
 
     operator bool() {
