@@ -3,6 +3,11 @@
 #include <cassert>
 
 template <typename T>
+class optional;
+
+
+
+template <typename T>
 class optional{
     bool is_exist;
     char storage[sizeof(T)];
@@ -27,7 +32,7 @@ public:
     }
 
     optional(T &&obj): is_exist(true) {
-        new (get_ptr()) T(obj);
+        new (get_ptr()) T(std::move(obj)    );
     }
 
     optional& operator=(optional const &other) {
@@ -69,14 +74,20 @@ public:
     operator bool() {
         return is_exist;
     }
+
+    ~optional() {
+        if (is_exist) {
+            (*get_ptr()).T::~T();
+        }
+    }
 private:
 
     T* get_ptr() {
-        return reinterpret_cast<T *&>(storage);
+        return reinterpret_cast<T *>(storage);
     }
 
     T const* get_ptr() const {
-        return reinterpret_cast<T const * const &>(storage);
+        return reinterpret_cast<T const *>(storage);
     }
 };
 
