@@ -43,8 +43,10 @@ int main () {
         assert(op->a == 5);
     }
     {
-        assert(std::is_copy_constructible<optional<Copy>>::value == true );
+        assert(std::is_copy_constructible<optional<Copy>>::value == true);
         assert(std::is_copy_constructible<optional<Move>>::value == false);
+        assert(std::is_move_constructible<optional<Copy>>::value == true);
+        assert(std::is_move_constructible<optional<Move>>::value == true);
     }
 
     return 0;

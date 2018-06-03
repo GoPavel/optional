@@ -4,30 +4,46 @@
 #include <type_traits>
 
 template <typename T>
-class optional_movable {
+class optional_base {
+protected:
     bool is_exist;
     std::aligned_storage_t<sizeof(T), alignof(T)> storage;
 
 public:
-    optional_movable(): is_exist(false) { }
+    optional_base(): is_exist(false) { }
 
-    optional_movable(optional_movable const &other) = delete;
+    optional_base(optional_base const &other): is_exist(other.is_exist) {
+        if (is_exist) {
+            new (get_ptr()) T(*other.get_ptr());
+        }
+    }
 
-    optional_movable(optional_movable &&other): is_exist(other.is_exist) {
+    optional_base(optional_base &&other): is_exist(other.is_exist) {
         if (is_exist) {
             new (get_ptr()) T(std::move(*other.get_ptr()));
         }
     }
 
-    optional_movable(T const &obj): is_exist(true) {
+    optional_base(T const &obj): is_exist(true) {
         new (get_ptr()) T(obj);
     }
 
-    optional_movable(T &&obj): is_exist(true) {
-        new (get_ptr()) T(std::move(obj)    );
+    optional_base(T &&obj): is_exist(true) {
+        new (get_ptr()) T(std::move(obj));
     }
 
-    optional_movable& operator=(optional_movable &&other) {
+    optional_base& operator=(optional_base const &other) {
+        if (is_exist) {
+            (*get_ptr()).T::~T();
+        }
+        is_exist = other.is_exist;
+        if (is_exist) {
+            new (get_ptr()) T(*other.get_ptr());
+        }
+        return *this;
+    }
+
+    optional_base& operator=(optional_base &&other) {
         if (is_exist) {
             (*get_ptr()).T::~T();
         }
@@ -56,12 +72,12 @@ public:
         return is_exist;
     }
 
-    ~optional_movable() {
+    ~optional_base() {
         if (is_exist) {
             (*get_ptr()).T::~T();
         }
     }
-private:
+protected:
 
     T* get_ptr() {
         return &reinterpret_cast<T&>(storage);
@@ -69,93 +85,51 @@ private:
 
     T const* get_ptr() const {
         return &reinterpret_cast<T const &>(storage);
+    }
+
+};
+
+template <typename T>
+class optional_movable : public optional_base<T> {
+
+public:
+    optional_movable(): optional_base<T>() { }
+
+    optional_movable(optional_movable const &other) = delete;
+
+    optional_movable(optional_movable &&other): optional_base<T>(std::move(other)) { }
+
+    optional_movable(T &&obj): optional_base<T>(std::move(obj)) {}
+
+    optional_movable& operator=(optional_movable &&other) {
+        optional_base<T>::operator=(std::move(other));
+        return *this;
     }
 };
 
 template <typename T>
-class optional_copyable {
-    bool is_exist;
-    std::aligned_storage_t<sizeof(T), alignof(T)> storage;
-
+class optional_copyable : public optional_base<T> {
 public:
-    optional_copyable(): is_exist(false) { }
+    optional_copyable(): optional_base<T>() { }
 
-    optional_copyable(optional_copyable const &other): is_exist(other.is_exist) {
-        if (is_exist) {
-            new (get_ptr()) T(*other.get_ptr());
-        }
-    }
+    optional_copyable(optional_copyable const &other): optional_base<T>(other) { }
 
-    optional_copyable(optional_copyable &&other): is_exist(other.is_exist) {
-        if (is_exist) {
-            new (get_ptr()) T(std::move(*other.get_ptr()));
-        }
-    }
+    optional_copyable(optional_copyable &&other): optional_base<T>(std::move(other)) { }
 
-    optional_copyable(T const &obj): is_exist(true) {
-        new (get_ptr()) T(obj);
-    }
+    optional_copyable(T &&obj): optional_base<T>(std::move(obj)) {}
 
-    optional_copyable(T &&obj): is_exist(true) {
-        new (get_ptr()) T(std::move(obj)    );
-    }
+    optional_copyable(T const &obj): optional_base<T>(obj) { }
 
     optional_copyable& operator=(optional_copyable const &other) {
-        if (is_exist) {
-            (*get_ptr()).T::~T();
-        }
-        is_exist = other.is_exist;
-        if (is_exist) {
-            new (get_ptr()) T(*other.get_ptr());
-        }
+        optional_base<T>::operator=(other);
         return *this;
     }
 
     optional_copyable& operator=(optional_copyable &&other) {
-        if (is_exist) {
-            (*get_ptr()).T::~T();
-        }
-        is_exist = other.is_exist;
-        if(is_exist) {
-            new (get_ptr()) T(std::move(*other.get_ptr()));
-        }
+        optional_base<T>::operator=(std::move(other));
         return *this;
     }
-
-    T& operator*() {
-        assert(is_exist);
-        return *get_ptr();
-    }
-
-    T* operator->() {
-        assert(is_exist);
-        return get_ptr();
-    }
-
-    bool is_empty() {
-        return !is_exist;
-    }
-
-    operator bool() {
-        return is_exist;
-    }
-
-    ~optional_copyable() {
-        if (is_exist) {
-            (*get_ptr()).T::~T();
-        }
-    }
-private:
-
-    T* get_ptr() {
-        return &reinterpret_cast<T&>(storage);
-    }
-
-    T const* get_ptr() const {
-        return &reinterpret_cast<T const &>(storage);
-    }
 };
-
 
 template<typename T>
 using optional =
